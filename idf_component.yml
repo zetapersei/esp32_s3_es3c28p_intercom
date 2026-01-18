@@ -1,0 +1,17 @@
+version: 0.1.0
+description: Board Support Package (BSP) for ESP32-S3-ES3C28P development board
+targets:
+  - esp32s3
+tags:
+  - bsp
+
+dependencies:
+  esp_codec_dev:
+    public: true
+    version: ~1.5
+  esp_lcd_ili9341: ^2.0.1
+  esp_lcd_touch_ft5x06: ^1.0.7
+  espressif/esp_lvgl_port:
+    public: true
+    version: ^2
+  idf: '>=5.4'
