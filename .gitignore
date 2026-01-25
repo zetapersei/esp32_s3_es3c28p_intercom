@@ -1,0 +1,16 @@
+﻿# Build directories
+build/
+managed_components/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# ESP-IDF
+sdkconfig.old
+dependencies.lock
+
+# OS
+.DS_Store
+Thumbs.db

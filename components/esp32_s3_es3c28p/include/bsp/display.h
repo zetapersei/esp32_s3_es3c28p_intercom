@@ -33,13 +33,13 @@
 #define BSP_LCD_BITS_PER_PIXEL         (16)
 /* LCD display color space */
 #define BSP_LCD_COLOR_SPACE            (LCD_RGB_ELEMENT_ORDER_BGR)
-/* LCD definition */
-#define BSP_LCD_H_RES                  (240)
-#define BSP_LCD_V_RES                  (320)
+/* LCD definition - Landscape orientation (rotated 90 degrees) */
+#define BSP_LCD_H_RES                  (320)
+#define BSP_LCD_V_RES                  (240)
 /* LCD orientation */
 #define BSP_LCD_INVERTED               (true)
-#define BSP_LCD_SWAP_XY                (false)
-#define BSP_LCD_MIRROR_X               (true)
+#define BSP_LCD_SWAP_XY                (true)
+#define BSP_LCD_MIRROR_X               (false)
 #define BSP_LCD_MIRROR_Y               (false)
 
 #ifdef __cplusplus

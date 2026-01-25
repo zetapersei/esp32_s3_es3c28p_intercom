@@ -20,6 +20,7 @@
 #include "esp_codec_dev.h"
 #include "bsp/config.h"
 #include "bsp/display.h"
+#include "bsp/touch.h"
 
 #include "driver/i2s_std.h"
 
@@ -234,6 +235,22 @@ esp_codec_dev_handle_t bsp_audio_codec_speaker_init(void);
  */
 esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void);
 
+/**
+ * @brief Get I2S TX (speaker) channel handle for direct low-latency access
+ *
+ * @note Bypasses esp_codec_dev buffering for maximum speed
+ * @return I2S TX channel handle or NULL if not initialized
+ */
+i2s_chan_handle_t bsp_audio_get_i2s_tx_channel(void);
+
+/**
+ * @brief Get I2S RX (microphone) channel handle for direct low-latency access
+ *
+ * @note Bypasses esp_codec_dev buffering for maximum speed
+ * @return I2S RX channel handle or NULL if not initialized
+ */
+i2s_chan_handle_t bsp_audio_get_i2s_rx_channel(void);
+
 /** @} */ // end of audio
 
 /** \addtogroup g02_storage
@@ -252,149 +269,76 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void);
  * \endcode
  **************************************************************************************************/
 #define BSP_SPIFFS_MOUNT_POINT      CONFIG_BSP_SPIFFS_MOUNT_POINT
+#define BSP_SD_MOUNT_POINT          CONFIG_BSP_SD_MOUNT_POINT
+#define BSP_SDSPI_HOST              SPI2_HOST
+
+/**
+ * @brief SD card configuration structure
+ */
+typedef struct {
+    const sdmmc_host_t *host;                       /*!< SD/MMC host config */
+    const esp_vfs_fat_sdmmc_mount_config_t *mount;  /*!< Mount config */
+    union {
+        const sdmmc_slot_config_t *sdmmc;           /*!< SDMMC slot config */
+        const sdspi_device_config_t *sdspi;         /*!< SDSPI device config */
+    } slot;
+} bsp_sdcard_cfg_t;
 
 /**
  * @brief Mount SPIFFS to virtual file system
  *
  * @return
  *      - ESP_OK on success
- *      - ESP_ERR_INVALID_STATE if esp_vfs_spiffs_register was already called
- *      - ESP_ERR_NO_MEM if memory can not be allocated
- *      - ESP_FAIL if partition can not be mounted
- *      - other error codes
+ *      - ESP_FAIL on error
  */
 esp_err_t bsp_spiffs_mount(void);
 
 /**
- * @brief Unmount SPIFFS from virtual file system
+ * @brief Unmount SPIFFS
  *
  * @return
  *      - ESP_OK on success
- *      - ESP_ERR_NOT_FOUND if the partition table does not contain SPIFFS partition with given label
- *      - ESP_ERR_INVALID_STATE if esp_vfs_spiffs_unregister was already called
- *      - ESP_ERR_NO_MEM if memory can not be allocated
- *      - ESP_FAIL if partition can not be mounted
- *      - other error codes
+ *      - ESP_FAIL on error
  */
 esp_err_t bsp_spiffs_unmount(void);
 
-/**************************************************************************************************
- *
- * uSD card
- *
- * After mounting the uSD card, it can be accessed with stdio functions ie.:
- * \code{.c}
- * FILE* f = fopen(BSP_MOUNT_POINT"/hello.txt", "w");
- * fprintf(f, "Hello %s!\n", bsp_sdcard->cid.name);
- * fclose(f);
- * \endcode
- **************************************************************************************************/
-#define BSP_SD_MOUNT_POINT      CONFIG_BSP_SD_MOUNT_POINT
-#define BSP_SDSPI_HOST          (SDSPI_DEFAULT_HOST)
-
 /**
- * @brief BSP SD card configuration structure
- */
-typedef struct {
-    const esp_vfs_fat_sdmmc_mount_config_t *mount;
-    sdmmc_host_t *host;
-    union {
-        const sdmmc_slot_config_t   *sdmmc;
-        const sdspi_device_config_t *sdspi;
-    } slot;
-} bsp_sdcard_cfg_t;
-
-/**
- * @brief Mount microSD card to virtual file system
+ * @brief Mount SD card via SDMMC interface
  *
+ * @param[in] cfg SD card configuration (can be NULL for default config)
  * @return
  *      - ESP_OK on success
- *      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount was already called
- *      - ESP_ERR_NO_MEM if memory cannot be allocated
- *      - ESP_FAIL if partition cannot be mounted
- *      - other error codes from SDMMC or SPI drivers, SDMMC protocol, or FATFS drivers
- */
-esp_err_t bsp_sdcard_mount(void);
-
-/**
- * @brief Unmount microSD card from virtual file system
- *
- * @return
- *      - ESP_OK on success
- *      - ESP_ERR_NOT_FOUND if the partition table does not contain FATFS partition with given label
- *      - ESP_ERR_INVALID_STATE if esp_vfs_fat_spiflash_mount was already called
- *      - ESP_ERR_NO_MEM if memory can not be allocated
- *      - ESP_FAIL if partition can not be mounted
- *      - other error codes from wear levelling library, SPI flash driver, or FATFS drivers
- */
-esp_err_t bsp_sdcard_unmount(void);
-
-/**
- * @brief Get SD card handle
- *
- * @return SD card handle
- */
-sdmmc_card_t *bsp_sdcard_get_handle(void);
-
-/**
- * @brief Get SD card MMC host config
- *
- * @param slot SD card slot
- * @param config Structure which will be filled
- */
-void bsp_sdcard_get_sdmmc_host(const int slot, sdmmc_host_t *config);
-
-/**
- * @brief Get SD card SPI host config
- *
- * @param slot SD card slot
- * @param config Structure which will be filled
- */
-void bsp_sdcard_get_sdspi_host(const int slot, sdmmc_host_t *config);
-
-/**
- * @brief Get SD card MMC slot config
- *
- * @param slot SD card slot
- * @param config Structure which will be filled
- */
-void bsp_sdcard_sdmmc_get_slot(const int slot, sdmmc_slot_config_t *config);
-
-/**
- * @brief Get SD card SPI slot config
- *
- * @param spi_host SPI host ID
- * @param config Structure which will be filled
- */
-void bsp_sdcard_sdspi_get_slot(const spi_host_device_t spi_host, sdspi_device_config_t *config);
-
-/**
- * @brief Mount microSD card to virtual file system (MMC mode)
- *
- * @param cfg SD card configuration
- *
- * @return
- *      - ESP_OK on success
- *      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount was already called
- *      - ESP_ERR_NO_MEM if memory cannot be allocated
- *      - ESP_FAIL if partition cannot be mounted
- *      - other error codes from SDMMC or SPI drivers, SDMMC protocol, or FATFS drivers
+ *      - ESP_FAIL on error
  */
 esp_err_t bsp_sdcard_sdmmc_mount(bsp_sdcard_cfg_t *cfg);
 
 /**
- * @brief Mount microSD card to virtual file system (SPI mode)
+ * @brief Mount SD card via SPI interface
  *
- * @param cfg SD card configuration
+ * @param[in] cfg SD card configuration (can be NULL for default config)
+ * @return
+ *      - ESP_OK on success
+ *      - ESP_FAIL on error
+ */
+esp_err_t bsp_sdcard_sdspi_mount(bsp_sdcard_cfg_t *cfg);
+
+/**
+ * @brief Mount SD card (using SDMMC with default config)
  *
  * @return
  *      - ESP_OK on success
- *      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount was already called
- *      - ESP_ERR_NO_MEM if memory cannot be allocated
- *      - ESP_FAIL if partition cannot be mounted
- *      - other error codes from SDMMC or SPI drivers, SDMMC protocol, or FATFS drivers
+ *      - ESP_FAIL on error
  */
-esp_err_t bsp_sdcard_sdspi_mount(bsp_sdcard_cfg_t *cfg);
+esp_err_t bsp_sdcard_mount(void);
+
+/**
+ * @brief Unmount SD card
+ *
+ * @return
+ *      - ESP_OK on success
+ *      - ESP_FAIL on error
+ */
+esp_err_t bsp_sdcard_unmount(void);
 
 /** @} */ // end of storage
 
@@ -404,96 +348,100 @@ esp_err_t bsp_sdcard_sdspi_mount(bsp_sdcard_cfg_t *cfg);
 
 /**************************************************************************************************
  *
- * LCD interface
+ * Display
  *
- * ESP32-S3-ES3C28P is shipped with 2.8inch ILI9341 display controller.
- * It features 16-bit colors, 320x240 resolution and capacitive touch controller.
- *
- * LVGL is used as graphics library. LVGL is NOT thread safe, therefore the user must take LVGL mutex
- * by calling bsp_display_lock() before calling and LVGL API (lv_...) and then give the mutex with
- * bsp_display_unlock().
- *
- * Display's backlight must be enabled explicitly by calling bsp_display_backlight_on()
  **************************************************************************************************/
-#define BSP_LCD_PIXEL_CLOCK_HZ     (40 * 1000 * 1000)
-#define BSP_LCD_SPI_NUM            (SPI3_HOST)
 
-#define BSP_LCD_DRAW_BUFF_SIZE     (BSP_LCD_H_RES * 50)
-#define BSP_LCD_DRAW_BUFF_DOUBLE   (true)
+#define BSP_LCD_SPI_NUM          (SPI2_HOST)
+#define BSP_LCD_PIXEL_CLOCK_HZ  (40 * 1000 * 1000)
 
-#if (BSP_CONFIG_NO_GRAPHIC_LIB == 0)
+/** @brief LCD size in pixels */
+#define BSP_LCD_DRAW_BUFF_SIZE (BSP_LCD_H_RES * 50)
+#define BSP_LCD_DRAW_BUFF_DOUBLE (0)
 
 /**
- * @brief BSP display configuration structure
+ * @brief BSP display configuration structure for LVGL
  *
  */
 typedef struct {
-    lvgl_port_cfg_t lvgl_port_cfg;  /*!< LVGL port configuration */
-    uint32_t        buffer_size;    /*!< Size of the buffer for the screen in pixels */
-    bool            double_buffer;  /*!< True, if should be allocated two buffers */
+    lvgl_port_cfg_t lvgl_port_cfg; /*!< LVGL port configuration. */
+    uint32_t buffer_size;          /*!< Buffer size for LVGL in bytes. */
+    bool double_buffer;            /*!< Use double buffering for LVGL. */
     struct {
-        unsigned int buff_dma: 1;    /*!< Allocated LVGL buffer will be DMA capable */
-        unsigned int buff_spiram: 1; /*!< Allocated LVGL buffer will be in PSRAM */
-    } flags;
+        unsigned int buff_dma : 1;    /*!< Use DMA memory for LVGL buffer. */
+        unsigned int buff_spiram : 1; /*!< Use SPIRAM for LVGL buffer. */
+    } flags;                        /*!< LVGL buffer flags. */
 } bsp_display_cfg_t;
 
+#if (BSP_CONFIG_NO_GRAPHIC_LIB == 0)
 /**
- * @brief Initialize display
+ * @brief Start display with LVGL
  *
- * This function initializes SPI, display controller and starts LVGL handling task.
- * LCD backlight must be enabled separately by calling bsp_display_brightness_set()
- *
- * @return Pointer to LVGL display or NULL when error occurred
+ * @return
+ *      - lv_display_t* Pointer to LVGL display
  */
 lv_display_t *bsp_display_start(void);
 
 /**
- * @brief Initialize display
+ * @brief Start display with LVGL and custom configuration
  *
- * This function initializes SPI, display controller and starts LVGL handling task.
- * LCD backlight must be enabled separately by calling bsp_display_brightness_set()
- *
- * @param cfg display configuration
- *
- * @return Pointer to LVGL display or NULL when error occurred
+ * @param[in] cfg Display configuration
+ * @return
+ *      - lv_display_t* Pointer to LVGL display
  */
 lv_display_t *bsp_display_start_with_config(const bsp_display_cfg_t *cfg);
 
 /**
- * @brief Get pointer to input device (touch, buttons, ...)
+ * @brief Get LVGL touch input device
  *
- * @note The LVGL input device is initialized in bsp_display_start() function.
- *
- * @return Pointer to LVGL input device or NULL when not initialized
+ * @return
+ *      - lv_indev_t* Pointer to LVGL input device
  */
 lv_indev_t *bsp_display_get_input_dev(void);
 
 /**
- * @brief Take LVGL mutex
+ * @brief Rotate display
  *
- * @param timeout_ms Timeout in [ms]. 0 will block indefinitely.
- * @return true  Mutex was taken
- * @return false Mutex was NOT taken
+ * @param disp LVGL display
+ * @param rotation Rotation value
+ */
+void bsp_display_rotate(lv_display_t *disp, lv_display_rotation_t rotation);
+
+/**
+ * @brief Lock LVGL for thread-safe operations
+ *
+ * @param timeout_ms Timeout in milliseconds
+ * @return
+ *      - true on success
+ *      - false on timeout
  */
 bool bsp_display_lock(uint32_t timeout_ms);
 
 /**
- * @brief Give LVGL mutex
- *
+ * @brief Unlock LVGL
  */
 void bsp_display_unlock(void);
+#endif // BSP_CONFIG_NO_GRAPHIC_LIB == 0
+
+/** @} */ // end of display
+
+/** \addtogroup g04_display
+ *  @{
+ */
+
+/**************************************************************************************************
+ *
+ * Touch
+ *
+ **************************************************************************************************/
 
 /**
- * @brief Rotate screen
+ * @brief Start touch
  *
- * Display must be already initialized by calling bsp_display_start()
- *
- * @param[in] disp Pointer to LVGL display
- * @param[in] rotation Angle of the display rotation
+ * @return
+ *      - esp_lcd_touch_handle_t* Pointer to touch handle
  */
-void bsp_display_rotate(lv_display_t *disp, lv_disp_rotation_t rotation);
-
-#endif // BSP_CONFIG_NO_GRAPHIC_LIB == 0
+esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t *ret_touch);
 
 /** @} */ // end of display
 

@@ -14,5 +14,4 @@ dependencies:
   espressif/esp_lvgl_port:
     public: true
     version: ^2
-  espressif/mdns: "^1.2"
   idf: '>=5.4'

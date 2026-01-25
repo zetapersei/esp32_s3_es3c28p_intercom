@@ -50,6 +50,13 @@ typedef struct {
  */
 esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t *ret_touch);
 
+/**
+ * @brief Get existing touchscreen handle
+ *
+ * @return esp_lcd_touch touchscreen handle or NULL if not initialized
+ */
+esp_lcd_touch_handle_t bsp_touch_get_handle(void);
+
 /** @} */ // end of display
 #ifdef __cplusplus
 }

@@ -324,6 +324,8 @@ esp_err_t bsp_audio_init(const i2s_std_config_t *i2s_config)
     /* Setup I2S peripheral */
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(CONFIG_BSP_I2S_NUM, I2S_ROLE_MASTER);
     chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
+    chan_cfg.dma_desc_num = 6;   // Больше дескрипторов для UDP streaming
+    chan_cfg.dma_frame_num = 480; // ~22ms при 22050Hz стерео - достаточно для буферизации
     ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &i2s_tx_chan, &i2s_rx_chan));
 
     /* Setup I2S channels */
@@ -351,6 +353,16 @@ esp_err_t bsp_audio_init(const i2s_std_config_t *i2s_config)
     i2s_data_if = audio_codec_new_i2s_data(&i2s_cfg);
 
     return ESP_OK;
+}
+
+i2s_chan_handle_t bsp_audio_get_i2s_tx_channel(void)
+{
+    return i2s_tx_chan;
+}
+
+i2s_chan_handle_t bsp_audio_get_i2s_rx_channel(void)
+{
+    return i2s_rx_chan;
 }
 
 esp_codec_dev_handle_t bsp_audio_codec_speaker_init(void)
@@ -383,7 +395,7 @@ esp_codec_dev_handle_t bsp_audio_codec_speaker_init(void)
         .gpio_if = gpio_if,
         .codec_mode = ESP_CODEC_DEV_TYPE_IN_OUT,
         .pa_pin = BSP_POWER_AMP_IO,
-        .pa_reverted = false,
+        .pa_reverted = true,  // Active low amplifier
         .master_mode = false,
         .use_mclk = true,
         .digital_mic = false,
@@ -432,7 +444,7 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void)
         .gpio_if = gpio_if,
         .codec_mode = ESP_CODEC_DEV_WORK_MODE_BOTH,
         .pa_pin = BSP_POWER_AMP_IO,
-        .pa_reverted = false,
+        .pa_reverted = true,  // Active low amplifier
         .master_mode = false,
         .use_mclk = true,
         .digital_mic = false,
@@ -574,15 +586,25 @@ err:
 
 esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t *ret_touch)
 {
+    ESP_LOGI(TAG, "bsp_touch_new: Initializing touch panel...");
+    
     /* Initilize I2C */
-    BSP_ERROR_CHECK_RETURN_ERR(bsp_i2c_init());
+    esp_err_t ret = bsp_i2c_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "bsp_touch_new: I2C init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    ESP_LOGI(TAG, "bsp_touch_new: I2C initialized, handle=%p", (void*)i2c_handle);
 
-    /* Initialize touch */
+    /* Initialize touch - calibration for landscape mode
+       Touch panel physically reports in portrait (0-240 X, 0-320 Y)
+       After swap_xy it becomes landscape (0-320 X, 0-240 Y) */
     const esp_lcd_touch_config_t tp_cfg = {
-        .x_max        = BSP_LCD_H_RES,
-        .y_max        = BSP_LCD_V_RES,
+        .x_max        = 240,  // Physical touch X max (before swap)
+        .y_max        = 320,  // Physical touch Y max (before swap)
         .rst_gpio_num = BSP_LCD_TOUCH_RST,
-        .int_gpio_num = BSP_LCD_TOUCH_INT,
+        /* Use polling mode (disable INT) to ensure LVGL reads touch data */
+        .int_gpio_num = GPIO_NUM_NC,
         .levels =
         {
             .reset     = 0,
@@ -590,17 +612,38 @@ esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t
         },
         .flags =
         {
-            .swap_xy  = 0,
-            .mirror_x = 0,
-            .mirror_y = 0,
+            .swap_xy  = true,   // Swap X<->Y for landscape
+            .mirror_x = true,   // Invert (was Y before swap)
+            .mirror_y = false,
         },
     };
-    esp_lcd_panel_io_handle_t tp_io_handle           = NULL;
+    ESP_LOGI(TAG, "bsp_touch_new: RST=%d, INT=%d, swap_xy=%d, mirror_x=%d", 
+             BSP_LCD_TOUCH_RST, tp_cfg.int_gpio_num, tp_cfg.flags.swap_xy, tp_cfg.flags.mirror_x);
+    
+    esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
     tp_io_config.scl_speed_hz = CONFIG_BSP_I2C_CLK_SPEED_HZ;
-    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c(i2c_handle, &tp_io_config, &tp_io_handle),
-                        TAG, "");
-    return esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, ret_touch);
+    
+    ret = esp_lcd_new_panel_io_i2c(i2c_handle, &tp_io_config, &tp_io_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "bsp_touch_new: esp_lcd_new_panel_io_i2c failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    ESP_LOGI(TAG, "bsp_touch_new: I2C panel IO created, addr=0x%02x", tp_io_config.dev_addr);
+    
+    ret = esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, ret_touch);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "bsp_touch_new: esp_lcd_touch_new_i2c_ft5x06 failed: %s", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "bsp_touch_new: Touch panel initialized successfully!");
+        tp = *ret_touch;  // Save handle for getter
+    }
+    return ret;
+}
+
+esp_lcd_touch_handle_t bsp_touch_get_handle(void)
+{
+    return tp;
 }
 
 #if (BSP_CONFIG_NO_GRAPHIC_LIB == 0)
@@ -647,6 +690,7 @@ static lv_display_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
 
 static lv_indev_t *bsp_display_indev_init(lv_display_t *disp)
 {
+    ESP_LOGI(TAG, "bsp_display_indev_init: Creating touch input device...");
     BSP_ERROR_CHECK_RETURN_NULL(bsp_touch_new(NULL, &tp));
     assert(tp);
 
@@ -656,7 +700,13 @@ static lv_indev_t *bsp_display_indev_init(lv_display_t *disp)
         .handle = tp,
     };
 
-    return lvgl_port_add_touch(&touch_cfg);
+    lv_indev_t *indev = lvgl_port_add_touch(&touch_cfg);
+    if (indev) {
+        ESP_LOGI(TAG, "bsp_display_indev_init: Touch input device created successfully!");
+    } else {
+        ESP_LOGE(TAG, "bsp_display_indev_init: Failed to create touch input device!");
+    }
+    return indev;
 }
 
 lv_display_t *bsp_display_start(void)
@@ -669,7 +719,7 @@ lv_display_t *bsp_display_start(void)
         .buff_spiram = false,
     }
                                       };
-    cfg.lvgl_port_cfg.task_affinity = 1; /* For camera */
+    cfg.lvgl_port_cfg.task_affinity = 0; /* Run LVGL on CPU0 */
     return bsp_display_start_with_config(&cfg);
 }
 
