@@ -1,161 +1,161 @@
-# ESP32-S3 Full-Duplex Intercom
+# ESP32-S3 Полнодуплексный Интерком
 
-🎙️ **Full-duplex audio intercom system** based on ESP32-S3 with hardware echo cancellation, noise suppression, and touch screen UI.
+🎙️ **Полнодуплексная система аудио-интеркома** на базе ESP32-S3 с аппаратным эхоподавлением, шумоподавлением и сенсорным экраном.
 
 ![ESP32-S3-ES3C28P](doc/ES3C28P-03.png)
 
-## ✨ Features
+## ✨ Возможности
 
-### Audio Processing
-- **Full-duplex communication** — simultaneous talk and listen
-- **ESP-SR AEC** — Acoustic Echo Cancellation with ~500ms echo tail (filter_len=16)
-- **ESP-SR NS** — Noise Suppression in mild mode
-- **ESP-SR AGC** — Automatic Gain Control (target -2dBFS)
-- **ADPCM compression** — 4:1 compression ratio for efficient network transmission
-- **16kHz / 16-bit mono** audio pipeline
-- **32ms frame size** (512 samples)
+### Обработка звука
+- **Полнодуплексная связь** — одновременная передача и приём голоса
+- **ESP-SR AEC** — акустическое эхоподавление с хвостом ~500мс (filter_len=16)
+- **ESP-SR NS** — шумоподавление в мягком режиме
+- **ESP-SR AGC** — автоматическая регулировка усиления (цель -2dBFS)
+- **ADPCM сжатие** — коэффициент сжатия 4:1 для эффективной передачи по сети
+- **16кГц / 16-бит моно** — аудио конвейер
+- **32мс размер кадра** (512 сэмплов)
 
-### Network
-- **UDP streaming** — low latency audio transport
-- **mDNS discovery** — automatic device discovery on local network
-- **WiFi configuration** — via touch screen UI
+### Сеть
+- **UDP стриминг** — передача звука с низкой задержкой
+- **mDNS обнаружение** — автоматический поиск устройств в локальной сети
+- **Настройка WiFi** — через сенсорный интерфейс
 
-### User Interface
-- **2.8" IPS touch display** (240×320, ILI9341)
-- **LVGL 9.x** graphics library
-- **Russian language support** with custom Cyrillic font
-- **Real-time audio levels** visualization
-- **Device list** with mDNS discovered intercoms
-- **Settings screen** for audio parameters
+### Пользовательский интерфейс
+- **2.8" IPS сенсорный дисплей** (240×320, ILI9341)
+- **LVGL 9.x** — графическая библиотека
+- **Поддержка русского языка** с кириллическим шрифтом
+- **Визуализация уровня звука** в реальном времени
+- **Список устройств** с обнаруженными через mDNS интеркомами
+- **Экран настроек** параметров аудио
 
-## 🛠️ Hardware
+## 🛠️ Аппаратное обеспечение
 
-### Supported Board
-**ESP32-S3-ES3C28P** — 2.8-inch Display Development Board
+### Поддерживаемая плата
+**ESP32-S3-ES3C28P** — отладочная плата с 2.8-дюймовым дисплеем
 
-| Component | Specification |
-|-----------|--------------|
-| MCU | ESP32-S3 (QFN56, dual-core @ 240MHz) |
-| RAM | 512KB SRAM + 8MB PSRAM |
-| Flash | 16MB |
-| Display | 2.8" IPS TFT (ILI9341, 240×320) |
-| Touch | Capacitive (FT6336G) |
-| Audio Codec | ES8311 |
-| Amplifier | FM8002E |
-| Microphone | MEMS |
-| Connectivity | WiFi 2.4GHz, Bluetooth 5.0 |
+| Компонент | Характеристики |
+|-----------|----------------|
+| МК | ESP32-S3 (QFN56, двухъядерный @ 240МГц) |
+| ОЗУ | 512КБ SRAM + 8МБ PSRAM |
+| Flash | 16МБ |
+| Дисплей | 2.8" IPS TFT (ILI9341, 240×320) |
+| Тач | Ёмкостный (FT6336G) |
+| Аудио кодек | ES8311 |
+| Усилитель | FM8002E |
+| Микрофон | MEMS |
+| Связь | WiFi 2.4ГГц, Bluetooth 5.0 |
 
-### Additional Hardware Capabilities
-- MicroSD card slot (SDIO 4-bit)
-- RGB LED (WS2812B)
-- USB Type-C (programming and power)
-- Battery connector (3.7V Li-Po with charging circuit)
+### Дополнительные возможности платы
+- Слот MicroSD карты (SDIO 4-bit)
+- RGB светодиод (WS2812B)
+- USB Type-C (программирование и питание)
+- Разъём для батареи (3.7В Li-Po со схемой зарядки)
 
-## Pin Mapping
+## Распиновка
 
 ### LCD (ILI9341V)
-| Function | GPIO | Description |
-|----------|------|-------------|
-| CS | IO10 | Chip select (active low) |
-| DC | IO46 | Data/Command select |
-| SCK | IO12 | SPI clock |
-| MOSI | IO11 | SPI data out |
-| MISO | IO13 | SPI data in |
-| RST | RST | Reset (shared with ESP32-S3) |
-| BL | IO45 | Backlight control |
+| Функция | GPIO | Описание |
+|---------|------|----------|
+| CS | IO10 | Выбор чипа (активный низкий) |
+| DC | IO46 | Выбор данные/команда |
+| SCK | IO12 | Тактовый сигнал SPI |
+| MOSI | IO11 | Выход данных SPI |
+| MISO | IO13 | Вход данных SPI |
+| RST | RST | Сброс (общий с ESP32-S3) |
+| BL | IO45 | Управление подсветкой |
 
-### Touch Screen (FT6336G)
-| Function | GPIO | Description |
-|----------|------|-------------|
-| SDA | IO16 | I2C data |
-| SCL | IO15 | I2C clock |
-| RST | IO18 | Touch reset |
-| INT | IO17 | Touch interrupt |
+### Сенсорный экран (FT6336G)
+| Функция | GPIO | Описание |
+|---------|------|----------|
+| SDA | IO16 | Данные I2C |
+| SCL | IO15 | Тактовый сигнал I2C |
+| RST | IO18 | Сброс тача |
+| INT | IO17 | Прерывание тача |
 
-### SD Card (SDIO)
-| Function | GPIO | Description |
-|----------|------|-------------|
-| CLK | IO38 | SDIO clock |
-| CMD | IO40 | SDIO command |
-| D0 | IO39 | Data line 0 |
-| D1 | IO41 | Data line 1 |
-| D2 | IO48 | Data line 2 |
-| D3 | IO47 | Data line 3 |
+### SD карта (SDIO)
+| Функция | GPIO | Описание |
+|---------|------|----------|
+| CLK | IO38 | Тактовый сигнал SDIO |
+| CMD | IO40 | Команда SDIO |
+| D0 | IO39 | Линия данных 0 |
+| D1 | IO41 | Линия данных 1 |
+| D2 | IO48 | Линия данных 2 |
+| D3 | IO47 | Линия данных 3 |
 
-### Audio (I2S)
-| Function | GPIO | Description |
-|----------|------|-------------|
-| AMP_EN | IO1 | Amplifier enable (active low) |
-| MCLK | IO4 | Master clock |
-| BCLK | IO5 | Bit clock |
-| DOUT | IO6 | Data output (to speaker) |
-| LRCK | IO7 | Left/Right clock |
-| DIN | IO8 | Data input (from mic) |
+### Аудио (I2S)
+| Функция | GPIO | Описание |
+|---------|------|----------|
+| AMP_EN | IO1 | Включение усилителя (активный низкий) |
+| MCLK | IO4 | Мастер-клок |
+| BCLK | IO5 | Битовый клок |
+| DOUT | IO6 | Выход данных (на динамик) |
+| LRCK | IO7 | Клок левый/правый канал |
+| DIN | IO8 | Вход данных (от микрофона) |
 
-### Other Peripherals
-| Function | GPIO | Description |
-|----------|------|-------------|
-| RGB LED | IO42 | WS2812B LED |
-| BOOT | IO0 | Boot mode button |
-| UART0 TX | IO44 | Debug UART |
-| UART0 RX | IO43 | Debug UART |
-| Battery ADC | IO9 | Battery voltage sense |
-| Expansion | IO2/3/14/21 | General purpose I/O |
+### Другие периферийные устройства
+| Функция | GPIO | Описание |
+|---------|------|----------|
+| RGB LED | IO42 | Светодиод WS2812B |
+| BOOT | IO0 | Кнопка режима загрузки |
+| UART0 TX | IO44 | Отладочный UART |
+| UART0 RX | IO43 | Отладочный UART |
+| Battery ADC | IO9 | Измерение напряжения батареи |
+| Расширение | IO2/3/14/21 | GPIO общего назначения |
 
-## Hardware Specifications
+## Технические характеристики
 
-### ESP32-S3 Parameters
-- **CPU**: Xtensa LX7 dual-core @ 240MHz
-- **ROM**: 384KB
-- **SRAM**: 512KB + 16KB RTC SRAM
-- **PSRAM**: 8MB (internal OPI)
-- **Flash**: 16MB (external SPI)
-- **Operating Voltage**: 3.0-3.6V
+### Параметры ESP32-S3
+- **ЦПУ**: Xtensa LX7 двухъядерный @ 240МГц
+- **ROM**: 384КБ
+- **SRAM**: 512КБ + 16КБ RTC SRAM
+- **PSRAM**: 8МБ (внутренний OPI)
+- **Flash**: 16МБ (внешний SPI)
+- **Рабочее напряжение**: 3.0-3.6В
 
-### Display Parameters
-- **Size**: 2.8 inch
-- **Type**: IPS TFT
-- **Resolution**: 240×320 pixels
-- **Colors**: 262K (RGB666) / 65K (RGB565)
-- **Driver**: ILI9341V
-- **Interface**: 4-wire SPI
-- **Backlight**: 4× white LEDs
-- **Operating Temp**: -30°C to +80°C
+### Параметры дисплея
+- **Размер**: 2.8 дюйма
+- **Тип**: IPS TFT
+- **Разрешение**: 240×320 пикселей
+- **Цвета**: 262K (RGB666) / 65K (RGB565)
+- **Драйвер**: ILI9341V
+- **Интерфейс**: 4-проводной SPI
+- **Подсветка**: 4× белых светодиода
+- **Рабочая температура**: от -30°C до +80°C
 
-### Touch Screen Parameters
-- **Type**: Capacitive
-- **Driver**: FT6336G
-- **Interface**: I2C
-- **Operating Temp**: -30°C to +80°C
+### Параметры сенсорного экрана
+- **Тип**: Ёмкостный
+- **Драйвер**: FT6336G
+- **Интерфейс**: I2C
+- **Рабочая температура**: от -30°C до +80°C
 
-### Power Specifications
-- **Operating Voltage**: 5V (USB Type-C)
-- **Backlight Current**: 79mA
-- **Display Only**: ~140mA
-- **Full Operation**: ~560mA (display + speaker + charging)
-- **Battery**: 3.7V Li-Po (with TP4054 charging IC)
-- **Charging Current**: Max 500mA, Typical 290mA
+### Характеристики питания
+- **Рабочее напряжение**: 5В (USB Type-C)
+- **Ток подсветки**: 79мА
+- **Только дисплей**: ~140мА
+- **Полная работа**: ~560мА (дисплей + динамик + зарядка)
+- **Батарея**: 3.7В Li-Po (с микросхемой зарядки TP4054)
+- **Ток зарядки**: Макс. 500мА, Типичный 290мА
 
-## BSP Components
+## Компоненты BSP
 
-This BSP provides the following components:
+BSP предоставляет следующие компоненты:
 
-### Core Headers
-- `bsp/esp32_s3_es3c28p.h` - Main BSP header
-- `bsp/esp-bsp.h` - Common BSP definitions
-- `bsp/config.h` - Board configuration
-- `bsp/display.h` - Display interface
-- `bsp/touch.h` - Touch interface
+### Основные заголовочные файлы
+- `bsp/esp32_s3_es3c28p.h` - Главный заголовок BSP
+- `bsp/esp-bsp.h` - Общие определения BSP
+- `bsp/config.h` - Конфигурация платы
+- `bsp/display.h` - Интерфейс дисплея
+- `bsp/touch.h` - Интерфейс тача
 
-### Source Files
-Located in `src/` directory:
-- Display driver implementation
-- Touch controller interface
-- SD card support
-- Audio codec configuration
-- Board initialization routines
+### Исходные файлы
+Расположены в директории `src/`:
+- Реализация драйвера дисплея
+- Интерфейс контроллера тача
+- Поддержка SD карты
+- Конфигурация аудио кодека
+- Процедуры инициализации платы
 
-## 📦 Dependencies
+## 📦 Зависимости
 
 - **ESP-IDF** v5.4+
 - **ESP-SR** v2.3+ (AEC, NS, AGC)
@@ -166,79 +166,79 @@ Located in `src/` directory:
 - **esp_lvgl_port** ^2
 - **mdns**
 
-## 🚀 Building
+## 🚀 Сборка
 
 ```bash
-# Clone repository
+# Клонирование репозитория
 git clone https://github.com/agran/esp32_s3_es3c28p_intercom.git
 cd esp32_s3_es3c28p_intercom
 
-# Set target
+# Установка целевой платформы
 idf.py set-target esp32s3
 
-# Configure (optional)
+# Конфигурация (опционально)
 idf.py menuconfig
 
-# Build
+# Сборка
 idf.py build
 
-# Flash
+# Прошивка
 idf.py -p COMx flash monitor
 ```
 
-## ⚙️ Configuration
+## ⚙️ Конфигурация
 
 ### WiFi
-Configure WiFi credentials via touch screen or set default in code:
+Настройте учётные данные WiFi через сенсорный экран или задайте по умолчанию в коде:
 ```c
-#define DEFAULT_WIFI_SSID     "YourSSID"
-#define DEFAULT_WIFI_PASSWORD "YourPassword"
+#define DEFAULT_WIFI_SSID     "ВашSSID"
+#define DEFAULT_WIFI_PASSWORD "ВашПароль"
 ```
 
-### Audio Parameters (via Settings screen)
-- **AGC Gain** — automatic gain control target level
-- **Noise Gate** — silence detection threshold
-- **AECM Delay** — echo cancellation delay compensation
+### Параметры аудио (через экран настроек)
+- **AGC Gain** — целевой уровень автоматической регулировки усиления
+- **Noise Gate** — порог детектирования тишины
+- **AECM Delay** — компенсация задержки эхоподавления
 
-## 📊 Performance
+## 📊 Производительность
 
-| Metric | Value |
-|--------|-------|
-| Audio latency | ~50-80ms (end-to-end) |
-| CPU load (TX task) | ~48-52% |
-| Echo tail | ~500ms |
-| Sample rate | 16kHz |
-| Frame size | 32ms (512 samples) |
-| Network bandwidth | ~32 kbps (ADPCM) |
-| Binary size | ~1.39 MB |
+| Метрика | Значение |
+|---------|----------|
+| Задержка аудио | ~50-80мс (сквозная) |
+| Загрузка ЦПУ (TX задача) | ~48-52% |
+| Хвост эха | ~500мс |
+| Частота дискретизации | 16кГц |
+| Размер кадра | 32мс (512 сэмплов) |
+| Пропускная способность сети | ~32 кбит/с (ADPCM) |
+| Размер бинарника | ~1.39 МБ |
 
-## 📁 Project Structure
+## 📁 Структура проекта
 
 ```
 esp32_s3_es3c28p_intercom/
 ├── components/
 │   └── esp32_s3_es3c28p/    # Board Support Package
-│       ├── include/bsp/     # Public headers
-│       ├── src/             # BSP implementation
-│       └── Kconfig          # BSP configuration
+│       ├── include/bsp/     # Публичные заголовки
+│       ├── src/             # Реализация BSP
+│       └── Kconfig          # Конфигурация BSP
 ├── main/
-│   ├── main.c               # Application code (~4900 lines)
-│   ├── font_montserrat_14_cyrillic.c  # Cyrillic font
-│   └── idf_component.yml    # Main component dependencies
-├── doc/                     # Documentation & images
-├── CMakeLists.txt           # Project CMake
-├── sdkconfig.defaults       # Default configuration
-└── partitions.csv           # Partition table
+│   ├── main.c               # Код приложения (~4900 строк)
+│   ├── font_montserrat_14_cyrillic.c  # Кириллический шрифт
+│   └── idf_component.yml    # Зависимости главного компонента
+├── doc/                     # Документация и изображения
+├── CMakeLists.txt           # CMake проекта
+├── sdkconfig.defaults       # Конфигурация по умолчанию
+└── partitions.csv           # Таблица разделов
 ```
 
-## 📝 Credits
+## 📝 Благодарности
 
-This project is based on [ngttai/esp32_s3_es3c28p](https://github.com/ngttai/esp32_s3_es3c28p) BSP.
+Этот проект основан на BSP [ngttai/esp32_s3_es3c28p](https://github.com/ngttai/esp32_s3_es3c28p).
 
-## 🤝 Contributing
+## 🤝 Участие в разработке
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Приветствуются любые вклады! Создайте issue или отправьте pull request.
 
 ---
 
-Made with ❤️ for ESP32-S3
+Сделано с ❤️ для ESP32-S3
