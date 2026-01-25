@@ -1,61 +1,73 @@
 // =====================================================
-// ESP32-S3-ES3C28P Intercom Case
+// ESP32-S3-ES3C28P Intercom Case v2
 // Корпус для интеркома с 4 кнопками Cherry MX
+// На основе STEP модели платы
 // Сборка: саморезы M2.6x8mm
 // =====================================================
 
 // Параметры для настройки
 $fn = 50;  // Качество окружностей
 
-// ===== Размеры платы ESP32-S3-ES3C28P =====
-pcb_width = 78;         // Ширина платы (X)
-pcb_height = 52;        // Высота платы (Y) 
-pcb_thickness = 1.6;    // Толщина платы
+// ===== Размеры из STEP модели (плата + дисплей) =====
+// Плата с дисплеем в горизонтальной ориентации
+// STEP: X=-52.75..+25 Y=-34.6..+92 Z=0..17.5
+// Переводим в положительные координаты и поворачиваем для горизонтальной ориентации
 
-// ===== Размеры экрана 2.8" =====
-screen_width = 43;      // Ширина видимой области экрана (Active Area)
-screen_height = 58;     // Высота видимой области экрана
-screen_bezel = 2;       // Рамка вокруг экрана
+// Плата (без дисплея): ~50x78mm
+pcb_width = 78;          // Короткая сторона платы (была Y в STEP)
+pcb_length = 50;         // Длинная сторона платы (была X в STEP)
+pcb_thickness = 1.6;
+
+// Дисплей 2.8" ILI9341 (горизонтально)
+// Модуль дисплея выступает за плату
+display_module_width = 85;   // Ширина модуля дисплея (горизонтально)
+display_module_length = 55;  // Длина модуля дисплея
+display_visible_width = 58;  // Видимая область (240px, короткая сторона стала длинной)
+display_visible_length = 43; // Видимая область (320px, длинная сторона стала короткой)
+display_thickness = 4;       // Толщина модуля дисплея
+
+// USB-C порт - сбоку платы
+usbc_width = 9.5;
+usbc_height = 3.5;
+
+// Динамик 20x30x6.8мм (из фото)
+speaker_width = 20;
+speaker_length = 30;
+speaker_height = 6.8;
+
+// Микрофон - справа сверху от дисплея (интегрирован в плату)
+mic_hole_d = 3;  // Отверстие под микрофон
 
 // ===== Размеры корпуса =====
-wall = 2.5;             // Толщина стенок
-bottom_thickness = 2.5; // Толщина дна
-top_lip = 2;            // Выступ крышки для фиксации
+wall = 2.5;              // Толщина стенок
+bottom_thickness = 2.5;  // Толщина дна
+top_thickness = 3;       // Толщина крышки
 
-case_width = pcb_width + wall * 2 + 1;    // ~84mm
-case_height = pcb_height + wall * 2 + 1;  // ~58mm
-case_depth = 22;        // Глубина корпуса
+// Корпус вмещает: плату + дисплей + динамик снизу + кнопки снизу
+case_width = display_module_width + wall * 2 + 2;   // ~92mm
+case_length = display_module_length + 45;           // Длина: дисплей + секция кнопок ~100mm
+case_depth = 18;  // Глубина: плата + компоненты снизу + динамик
 
-// ===== Секция кнопок (расширение корпуса вниз) =====
-buttons_section_height = 30;  // Высота секции с кнопками
-total_height = case_height + buttons_section_height;
+// Секция кнопок ниже дисплея
+buttons_section = 40;  // Высота секции с кнопками
 
 // ===== Cherry MX кнопки =====
-cherry_hole = 14;       // Отверстие под Cherry MX (14x14мм стандарт)
-cherry_spacing = 19.05; // Стандартный шаг между кнопками (0.75" = 19.05mm)
+cherry_hole = 14;        // Отверстие под Cherry MX (14x14мм)
+cherry_spacing = 19.05;  // Стандартный шаг (0.75")
 num_buttons = 4;
-buttons_y_offset = 15;  // Центр кнопок от нижнего края
-
-// ===== USB-C порт =====
-usbc_width = 10;        // Ширина отверстия под USB-C
-usbc_height = 4;        // Высота отверстия
-usbc_z_offset = 4;      // Высота от дна корпуса
-
-// ===== Динамик/Микрофон =====
-speaker_holes = true;   // Отверстия для звука
 
 // ===== Крепёжные отверстия M2.6 =====
-screw_d = 2.6;          // Диаметр самореза
-screw_head_d = 5.5;     // Диаметр головки
-screw_boss_d = 6.5;     // Диаметр бобышки
-screw_inset = 5;        // Отступ от края
+screw_d = 2.6;
+screw_head_d = 5.5;
+screw_boss_d = 6.5;
+screw_inset = 6;
 
 // ===== Позиции крепёжных отверстий =====
 function screw_positions() = [
     [screw_inset, screw_inset],
     [case_width - screw_inset, screw_inset],
-    [screw_inset, total_height - screw_inset],
-    [case_width - screw_inset, total_height - screw_inset]
+    [screw_inset, case_length - screw_inset],
+    [case_width - screw_inset, case_length - screw_inset]
 ];
 
 // ===== Модули =====
@@ -65,7 +77,19 @@ module screw_boss(height) {
     difference() {
         cylinder(d=screw_boss_d, h=height);
         translate([0, 0, 2])
-            cylinder(d=screw_d - 0.4, h=height);  // Отверстие под саморез
+            cylinder(d=screw_d - 0.4, h=height);
+    }
+}
+
+// Скруглённый прямоугольник
+module rounded_box(w, l, h, r=3) {
+    hull() {
+        for (x = [r, w - r]) {
+            for (y = [r, l - r]) {
+                translate([x, y, 0])
+                    cylinder(r=r, h=h);
+            }
+        }
     }
 }
 
@@ -73,15 +97,8 @@ module screw_boss(height) {
 module case_bottom() {
     difference() {
         union() {
-            // Основной корпус с скруглёнными углами
-            hull() {
-                for (x = [3, case_width - 3]) {
-                    for (y = [3, total_height - 3]) {
-                        translate([x, y, 0])
-                            cylinder(r=3, h=case_depth);
-                    }
-                }
-            }
+            // Основной корпус
+            rounded_box(case_width, case_length, case_depth);
             
             // Бобышки для саморезов
             for (pos = screw_positions()) {
@@ -92,102 +109,104 @@ module case_bottom() {
         
         // Внутренняя полость
         translate([wall, wall, bottom_thickness])
-            hull() {
-                for (x = [2, case_width - wall*2 - 2]) {
-                    for (y = [2, total_height - wall*2 - 2]) {
-                        translate([x, y, 0])
-                            cylinder(r=2, h=case_depth);
-                    }
-                }
-            }
+            rounded_box(case_width - wall*2, case_length - wall*2, case_depth, r=2);
         
-        // USB-C порт (справа, в секции платы)
-        translate([case_width - wall - 1, 
-                   buttons_section_height + case_height/2 - usbc_width/2, 
-                   bottom_thickness + usbc_z_offset])
+        // USB-C порт (справа, в середине по длине дисплея)
+        usbc_y = buttons_section + display_module_length/2;
+        translate([case_width - wall - 1, usbc_y - usbc_width/2, bottom_thickness + 3])
             cube([wall + 2, usbc_width, usbc_height]);
         
-        // Отверстия под саморезы снизу
+        // Полка для платы (выступы внутри)
+        // Плата лежит на высоте ~8мм от дна (под ней динамик)
+        
+        // Отверстия под саморезы снизу (потай)
         for (pos = screw_positions()) {
             translate([pos[0], pos[1], -1])
                 cylinder(d=screw_d + 0.3, h=bottom_thickness + 2);
+            // Потай
+            translate([pos[0], pos[1], -0.1])
+                cylinder(d1=screw_head_d + 0.5, d2=screw_d + 0.3, h=2);
         }
         
-        // Вентиляционные отверстия снизу (под платой)
-        if (speaker_holes) {
-            // Отверстия для динамика/микрофона
-            for (i = [-2:2]) {
-                for (j = [-2:2]) {
-                    if (abs(i) + abs(j) <= 3) {
-                        translate([case_width/2 + i*4, 
-                                   buttons_section_height + case_height/2 + j*4, 
-                                   -1])
-                            cylinder(d=2.5, h=bottom_thickness + 2);
-                    }
-                }
+        // Отверстия для динамика (овальная решётка)
+        // Динамик в центре нижней части
+        speaker_x = case_width / 2;
+        speaker_y = buttons_section / 2 + 5;
+        
+        for (i = [-2:2]) {
+            for (j = [-1:1]) {
+                translate([speaker_x + i*5, speaker_y + j*6, -1])
+                    cylinder(d=3, h=bottom_thickness + 2);
             }
         }
     }
 }
 
-// Верхняя часть корпуса (крышка с экраном и кнопками)
+// Полка для платы внутри корпуса
+module pcb_shelf() {
+    shelf_height = 8;  // Высота полки (под платой динамик)
+    shelf_width = 3;
+    
+    // Боковые полки
+    translate([wall, wall + buttons_section, bottom_thickness])
+        cube([shelf_width, display_module_length - 10, shelf_height]);
+    translate([case_width - wall - shelf_width, wall + buttons_section, bottom_thickness])
+        cube([shelf_width, display_module_length - 10, shelf_height]);
+}
+
+// Верхняя часть корпуса (крышка)
 module case_top() {
-    top_thickness = 3;
+    lip_height = 2;  // Выступ для фиксации
     
     difference() {
         union() {
-            // Основная крышка с скруглёнными углами
-            hull() {
-                for (x = [3, case_width - 3]) {
-                    for (y = [3, total_height - 3]) {
-                        translate([x, y, 0])
-                            cylinder(r=3, h=top_thickness);
-                    }
-                }
-            }
+            // Основная крышка
+            rounded_box(case_width, case_length, top_thickness);
             
             // Выступ для фиксации внутри корпуса
-            translate([wall + 0.3, wall + 0.3, -top_lip])
-                hull() {
-                    for (x = [1, case_width - wall*2 - 0.6 - 1]) {
-                        for (y = [1, total_height - wall*2 - 0.6 - 1]) {
-                            translate([x, y, 0])
-                                cylinder(r=1, h=top_lip + 0.1);
-                        }
-                    }
-                }
+            translate([wall + 0.3, wall + 0.3, -lip_height])
+                rounded_box(case_width - wall*2 - 0.6, case_length - wall*2 - 0.6, lip_height + 0.1, r=1.5);
         }
         
-        // Отверстие под экран (с рамкой)
-        screen_x = (case_width - screen_width - screen_bezel*2) / 2;
-        screen_y = buttons_section_height + (case_height - screen_height - screen_bezel*2) / 2;
+        // === ВЫРЕЗ ПОД ДИСПЛЕЙ ===
+        // Дисплей в верхней части корпуса (горизонтально)
+        display_x = (case_width - display_visible_width) / 2;
+        display_y = buttons_section + (display_module_length - display_visible_length) / 2 + 3;
         
-        // Видимая область экрана
-        translate([screen_x + screen_bezel, screen_y + screen_bezel, -top_lip - 1])
-            cube([screen_width, screen_height, top_thickness + top_lip + 2]);
+        // Видимая область дисплея
+        translate([display_x, display_y, -lip_height - 1])
+            cube([display_visible_width, display_visible_length, top_thickness + lip_height + 2]);
         
-        // Утопление для стекла/модуля экрана
-        translate([screen_x, screen_y, top_thickness - 1])
-            cube([screen_width + screen_bezel*2, screen_height + screen_bezel*2, 2]);
+        // Утопление для рамки дисплея
+        translate([display_x - 3, display_y - 3, top_thickness - 1.5])
+            cube([display_visible_width + 6, display_visible_length + 6, 2]);
         
-        // Отверстия под Cherry MX кнопки (4 штуки в ряд)
+        // === ОТВЕРСТИЕ ПОД МИКРОФОН ===
+        // Справа сверху от дисплея
+        mic_x = display_x + display_visible_width + 8;
+        mic_y = display_y + display_visible_length - 5;
+        translate([mic_x, mic_y, -lip_height - 1])
+            cylinder(d=mic_hole_d, h=top_thickness + lip_height + 2);
+        
+        // === ОТВЕРСТИЯ ПОД CHERRY MX КНОПКИ ===
+        // 4 кнопки в ряд в нижней секции
         buttons_total_width = (num_buttons - 1) * cherry_spacing + cherry_hole;
         buttons_start_x = (case_width - buttons_total_width) / 2 + cherry_hole/2;
+        buttons_y = buttons_section / 2 + 3;
         
         for (i = [0:num_buttons-1]) {
             btn_x = buttons_start_x + i * cherry_spacing;
-            btn_y = buttons_y_offset;
             
-            // Квадратное отверстие 14x14 для Cherry MX
-            translate([btn_x - cherry_hole/2, btn_y - cherry_hole/2, -top_lip - 1])
-                cube([cherry_hole, cherry_hole, top_thickness + top_lip + 2]);
+            // Квадратное отверстие 14x14
+            translate([btn_x - cherry_hole/2, buttons_y - cherry_hole/2, -lip_height - 1])
+                cube([cherry_hole, cherry_hole, top_thickness + lip_height + 2]);
         }
         
-        // Отверстия под саморезы (с потаем)
+        // === ОТВЕРСТИЯ ПОД САМОРЕЗЫ ===
         for (pos = screw_positions()) {
             // Сквозное отверстие
-            translate([pos[0], pos[1], -top_lip - 1])
-                cylinder(d=screw_d + 0.5, h=top_thickness + top_lip + 2);
+            translate([pos[0], pos[1], -lip_height - 1])
+                cylinder(d=screw_d + 0.5, h=top_thickness + lip_height + 2);
             // Потай под головку
             translate([pos[0], pos[1], top_thickness - 2])
                 cylinder(d1=screw_d + 0.5, d2=screw_head_d + 0.5, h=2.5);
@@ -195,50 +214,59 @@ module case_top() {
     }
 }
 
+// Динамик (для визуализации)
+module speaker_model() {
+    color("DimGray")
+    translate([case_width/2 - speaker_width/2, buttons_section/2 + 5 - speaker_length/2, bottom_thickness + 0.5])
+        cube([speaker_width, speaker_length, speaker_height]);
+}
+
 // Превью собранного корпуса
 module assembled_preview() {
     color("DarkSlateGray") case_bottom();
-    color("SlateGray", 0.8) translate([0, 0, case_depth]) case_top();
+    color("DarkSlateGray", 0.3) pcb_shelf();
+    // speaker_model();  // Раскомментировать для показа динамика
+    color("SlateGray", 0.7) translate([0, 0, case_depth]) case_top();
 }
 
-// ===== Рендеринг =====
+// ===== РЕНДЕРИНГ =====
 // Раскомментируйте нужный вариант:
 
 // Вариант 1: Превью собранного корпуса
 assembled_preview();
 
-// Вариант 2: Детали разнесены для печати
+// Вариант 2: Только нижняя часть (для экспорта STL)
+// case_bottom();
+
+// Вариант 3: Только верхняя часть (для экспорта STL)  
+// case_top();
+
+// Вариант 4: Детали для печати (разнесены)
 // case_bottom();
 // translate([case_width + 10, 0, top_thickness]) rotate([180, 0, 0]) case_top();
 
-// Вариант 3: Только нижняя часть (для экспорта STL)
-// case_bottom();
-
-// Вариант 4: Только верхняя часть (для экспорта STL)
-// case_top();
-
 // =====================================================
-// ИНСТРУКЦИИ:
+// ХАРАКТЕРИСТИКИ КОРПУСА:
 // =====================================================
-// 1. Установите OpenSCAD: https://openscad.org/downloads.html
-// 2. Откройте этот файл
-// 3. Для экспорта в STL:
-//    a) Закомментируйте assembled_preview()
-//    b) Раскомментируйте case_bottom() или case_top()
-//    c) Нажмите F6 (Render)
-//    d) File -> Export -> Export as STL
+// Внешние размеры: ~92 x 100 x 21 мм
+// 
+// Особенности:
+// - Дисплей 2.8" в горизонтальной ориентации
+// - 4 кнопки Cherry MX под дисплеем
+// - Динамик 20x30 мм внутри (решётка снизу)
+// - Микрофон - отверстие справа сверху от дисплея
+// - USB-C порт справа
+// - Крепление на 4 самореза M2.6x8
 //
-// Размеры корпуса: ~84 x 88 x 25 мм
-//
-// Печать:
-// - Сопло: 0.4мм
-// - Слой: 0.2мм  
+// ПЕЧАТЬ:
+// - Слой: 0.2мм
 // - Заполнение: 15-20%
 // - Материал: PLA или PETG
 // - Поддержки: не нужны
 //
-// Сборка:
-// - 4x саморезы M2.6x8mm
-// - Плата ESP32-S3-ES3C28P
-// - 4x переключатели Cherry MX
+// СБОРКА:
+// 1. Установить динамик в нижнюю часть
+// 2. Установить плату на полки
+// 3. Вставить Cherry MX кнопки в крышку
+// 4. Закрыть крышку и закрутить саморезы
 // =====================================================
