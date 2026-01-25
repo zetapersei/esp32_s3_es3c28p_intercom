@@ -190,6 +190,10 @@ module case_top() {
         
         // === ОТВЕРСТИЯ ПОД CHERRY MX КНОПКИ ===
         // 4 кнопки в ряд в нижней секции
+        // Cherry MX защёлкивается в пластину 1.5мм (допуск 1.2-1.8мм)
+        cherry_plate_thickness = 1.5;  // Толщина для защёлкивания
+        cherry_recess = top_thickness - cherry_plate_thickness;  // Глубина выборки
+        
         buttons_total_width = (num_buttons - 1) * cherry_spacing + cherry_hole;
         buttons_start_x = (case_width - buttons_total_width) / 2 + cherry_hole/2;
         buttons_y = buttons_section / 2 + 3;
@@ -197,9 +201,14 @@ module case_top() {
         for (i = [0:num_buttons-1]) {
             btn_x = buttons_start_x + i * cherry_spacing;
             
-            // Квадратное отверстие 14x14
+            // Квадратное отверстие 14x14 (сквозное)
             translate([btn_x - cherry_hole/2, buttons_y - cherry_hole/2, -lip_height - 1])
                 cube([cherry_hole, cherry_hole, top_thickness + lip_height + 2]);
+            
+            // Выборка сверху для уменьшения толщины до 1.5мм
+            // Размер выборки чуть больше отверстия для защёлок
+            translate([btn_x - cherry_hole/2 - 1, buttons_y - cherry_hole/2 - 1, top_thickness - cherry_recess])
+                cube([cherry_hole + 2, cherry_hole + 2, cherry_recess + 1]);
         }
         
         // === ОТВЕРСТИЯ ПОД САМОРЕЗЫ ===
