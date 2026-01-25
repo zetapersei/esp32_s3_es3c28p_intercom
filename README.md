@@ -170,8 +170,8 @@ Located in `src/` directory:
 
 ```bash
 # Clone repository
-git clone https://github.com/agran/esp32_s3_es3c28p_demo2.git
-cd esp32_s3_es3c28p_demo2
+git clone https://github.com/agran/esp32_s3_es3c28p_intercom.git
+cd esp32_s3_es3c28p_intercom
 
 # Set target
 idf.py set-target esp32s3
@@ -215,7 +215,7 @@ Configure WiFi credentials via touch screen or set default in code:
 ## 📁 Project Structure
 
 ```
-esp32_s3_es3c28p_demo2/
+esp32_s3_es3c28p_intercom/
 ├── components/
 │   └── esp32_s3_es3c28p/    # Board Support Package
 │       ├── include/bsp/     # Public headers
