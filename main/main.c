@@ -197,6 +197,10 @@ static volatile bool s_calib_reset_log_counters = false;
 #define BUILD_DATE __DATE__
 #define BUILD_TIME __TIME__
 
+// ===== Физическая кнопка Cherry MX (PTT) =====
+#define PTT_BUTTON_GPIO     GPIO_NUM_2      // GPIO2 - свободный пин для кнопки
+static volatile bool s_ptt_pressed = false;
+
 // Touch calibration debug
 static lv_obj_t *s_touch_point = NULL;      // Точка для отображения касания
 static lv_obj_t *s_touch_label = NULL;      // Метка с координатами
@@ -786,11 +790,97 @@ static int audio_calibrate_delay(void)
     }
 }
 
-// Запуск калибровки и применение результата
-// Forward declarations для stream_tx/rx функций
-static void stream_tx_stop(void);
-static void stream_rx_stop(void);
+// ===== Физическая кнопка PTT (Push-To-Talk) Cherry MX =====
+// Forward declarations для функций управления передачей
 static void stream_tx_start(void);
+static void stream_tx_stop(void);
+
+// Задача опроса состояния PTT кнопки (polling вместо ISR для надёжности)
+static void ptt_button_task(void *arg)
+{
+    bool last_stable_state = false;
+    bool current_reading = false;
+    int debounce_count = 0;
+    const int DEBOUNCE_THRESHOLD = 3;  // 3 * 20ms = 60ms стабильного состояния
+    
+    ESP_LOGI(TAG, "PTT button task started on GPIO%d (polling mode)", PTT_BUTTON_GPIO);
+    
+    while (1) {
+        // Читаем GPIO напрямую (0 = нажата, 1 = отпущена)
+        bool gpio_pressed = (gpio_get_level(PTT_BUTTON_GPIO) == 0);
+        
+        // Программный дебаунс
+        if (gpio_pressed == current_reading) {
+            debounce_count++;
+        } else {
+            current_reading = gpio_pressed;
+            debounce_count = 0;
+        }
+        
+        // Состояние считается стабильным после DEBOUNCE_THRESHOLD последовательных чтений
+        if (debounce_count >= DEBOUNCE_THRESHOLD && current_reading != last_stable_state) {
+            last_stable_state = current_reading;
+            s_ptt_pressed = current_reading;  // Обновляем глобальный флаг
+            
+            if (current_reading) {
+                // Кнопка нажата - начинаем передачу
+                ESP_LOGI(TAG, "PTT pressed - starting TX");
+                if (!s_streaming_tx) {
+                    stream_tx_start();
+                }
+                // Обновляем UI кнопку - красный цвет при передаче
+                if (lvgl_port_lock(100)) {
+                    if (s_btn_tx) {
+                        lv_obj_set_style_bg_color(s_btn_tx, lv_color_make(200, 50, 50), 0);
+                    }
+                    lvgl_port_unlock();
+                }
+            } else {
+                // Кнопка отпущена - останавливаем передачу
+                ESP_LOGI(TAG, "PTT released - stopping TX");
+                if (s_streaming_tx) {
+                    stream_tx_stop();
+                }
+                // Возвращаем цвет UI кнопки
+                if (lvgl_port_lock(100)) {
+                    if (s_btn_tx) {
+                        if (s_rx_active) {
+                            lv_obj_set_style_bg_color(s_btn_tx, lv_color_make(255, 150, 50), 0);  // Оранжевый
+                        } else {
+                            lv_obj_set_style_bg_color(s_btn_tx, lv_color_make(50, 150, 50), 0);   // Зелёный
+                        }
+                    }
+                    lvgl_port_unlock();
+                }
+            }
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(20));  // Опрос каждые 20мс
+    }
+}
+
+// Инициализация кнопки PTT
+static void ptt_button_init(void)
+{
+    // Конфигурация GPIO для кнопки (без прерываний - используем polling)
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_DISABLE,      // Без прерываний - polling надёжнее для мех. кнопок
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << PTT_BUTTON_GPIO),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE,    // Внутренняя подтяжка к 3.3В
+    };
+    gpio_config(&io_conf);
+    
+    // Запускаем задачу обработки кнопки (8KB стека - stream_tx функции требуют много места)
+    xTaskCreate(ptt_button_task, "ptt_btn", 8192, NULL, 5, NULL);
+    
+    ESP_LOGI(TAG, "PTT button initialized on GPIO%d (Cherry MX, polling mode)", PTT_BUTTON_GPIO);
+}
+
+// Запуск калибровки и применение результата
+// Forward declarations для stream_rx функций
+static void stream_rx_stop(void);
 static void stream_rx_start(void);
 
 static void audio_calibrate_and_apply(void)
@@ -4906,4 +4996,7 @@ void app_main(void)
     // audio_task на CPU0 с низким приоритетом (мониторинг уровня, не критично)
     // CPU1 оставляем свободным для audio_rx/tx с высоким приоритетом
     xTaskCreatePinnedToCore(audio_task, "audio_task", 8192, NULL, 3, &s_audio_task_handle, 0);
+
+    // Инициализация физической кнопки PTT (Cherry MX)
+    ptt_button_init();
 }
