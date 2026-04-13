@@ -186,18 +186,18 @@ static lv_obj_t *s_label_noise_gate = NULL;
 static lv_obj_t *s_btn_calibrate = NULL;    // Кнопка калибровки
 static lv_obj_t *s_label_calibrate = NULL;  // Метка калибровки
 
-// Общая панель настроек
+// General settings panel
 static lv_obj_t *s_settings_panel = NULL;   // Главная панель настроек
 static lv_obj_t *s_btn_settings = NULL;     // Кнопка открытия настроек
 
-// Сброс статических счётчиков логов калибровки
+// Resetting static calibration log counters
 static volatile bool s_calib_reset_log_counters = false;
 
-// Дата и время сборки (автоматически от компилятора)
+// Build date and time (automatically from the compiler)
 #define BUILD_DATE __DATE__
 #define BUILD_TIME __TIME__
 
-// ===== Физическая кнопка Cherry MX (PTT) =====
+// ===== Cherry MX physical button (PTT) =====
 #define PTT_BUTTON_GPIO     GPIO_NUM_2      // GPIO2 - свободный пин для кнопки
 static volatile bool s_ptt_pressed = false;
 
@@ -206,7 +206,7 @@ static lv_obj_t *s_touch_point = NULL;      // Точка для отображ�
 static lv_obj_t *s_touch_label = NULL;      // Метка с координатами
 static bool s_touch_debug_enabled = false;  // Режим отладки тача
 
-// Русская клавиатура - нижний регистр
+// Russian keyboard - lower case
 static const char * const kb_map_ru_lc[] = {
     "1#", "й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х", LV_SYMBOL_BACKSPACE, "\n",
     "АБВ", "ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э", "\n",
@@ -214,7 +214,7 @@ static const char * const kb_map_ru_lc[] = {
     LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
 };
 
-// Русская клавиатура - верхний регистр
+// Russian keyboard - upper case
 static const char * const kb_map_ru_uc[] = {
     "1#", "Й", "Ц", "У", "К", "Е", "Н", "Г", "Ш", "Щ", "З", "Х", LV_SYMBOL_BACKSPACE, "\n",
     "абв", "Ф", "Ы", "В", "А", "П", "Р", "О", "Л", "Д", "Ж", "Э", "\n",
@@ -222,7 +222,7 @@ static const char * const kb_map_ru_uc[] = {
     LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
 };
 
-// Английская клавиатура - нижний регистр (с кнопкой ru)
+// English keyboard - lowercase (with ru button)
 static const char * const kb_map_en_lc[] = {
     "1#", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", LV_SYMBOL_BACKSPACE, "\n",
     "ABC", "a", "s", "d", "f", "g", "h", "j", "k", "l", "\n",
@@ -230,7 +230,7 @@ static const char * const kb_map_en_lc[] = {
     LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
 };
 
-// Английская клавиатура - верхний регистр (с кнопкой ru)
+// English keyboard - uppercase (with ru button)
 static const char * const kb_map_en_uc[] = {
     "1#", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", LV_SYMBOL_BACKSPACE, "\n",
     "abc", "A", "S", "D", "F", "G", "H", "J", "K", "L", "\n",
@@ -238,7 +238,7 @@ static const char * const kb_map_en_uc[] = {
     LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
 };
 
-// Контрольная карта для русской клавиатуры
+// Test card for Russian keyboard
 static const lv_buttonmatrix_ctrl_t kb_ctrl_ru_map[] = {
     LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, LV_BUTTONMATRIX_CTRL_CHECKED | 5,
     LV_KEYBOARD_CTRL_BUTTON_FLAGS | 6, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -246,7 +246,7 @@ static const lv_buttonmatrix_ctrl_t kb_ctrl_ru_map[] = {
     LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2, LV_BUTTONMATRIX_CTRL_CHECKED | 2, 6, LV_BUTTONMATRIX_CTRL_CHECKED | 2, LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2
 };
 
-// Контрольная карта для английской клавиатуры
+// Test card for English keyboard
 static const lv_buttonmatrix_ctrl_t kb_ctrl_en_map[] = {
     LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, LV_BUTTONMATRIX_CTRL_CHECKED | 5,
     LV_KEYBOARD_CTRL_BUTTON_FLAGS | 6, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -254,7 +254,7 @@ static const lv_buttonmatrix_ctrl_t kb_ctrl_en_map[] = {
     LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2, LV_BUTTONMATRIX_CTRL_CHECKED | 2, 6, LV_BUTTONMATRIX_CTRL_CHECKED | 2, LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2
 };
 
-// Флаг текущей раскладки
+// Current layout flag
 static bool s_kb_russian = false;
 #endif
 
@@ -272,11 +272,11 @@ static void audio_beep_play(void)
         return;
     }
 
-    const int sample_rate = 16000;  // Совпадает с AUDIO_SAMPLE_RATE для ESP-SR AFE
-    const int freq = 1000;  // 1000 Hz - короткий тон
-    const int duration_ms = 100;  // 100ms - короткий писк
+    const int sample_rate = 16000;  // Same as AUDIO_SAMPLE_RATE for ESP-SR AFE
+    const int freq = 1000;  // 1000 Hz - short tone
+    const int duration_ms = 100;  // 100ms - short squeak
     const int samples = (sample_rate * duration_ms) / 1000;
-    const float amplitude = 0.3f;  // 30% громкости
+    const float amplitude = 0.3f;  // 30% volume
 
     // Моно буфер (channel=1)
     int16_t *buffer = (int16_t *)heap_caps_malloc(samples * sizeof(int16_t), MALLOC_CAP_DEFAULT);
