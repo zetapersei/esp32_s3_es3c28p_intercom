@@ -24,7 +24,6 @@
 ### User Interface
 - **2.8" IPS touchscreen display** (240×320, ILI9341)
 - **LVGL 9.x** — graphics library
-- **Russian language support** with Cyrillic font
 - **English language translation**
 - **Real-time audio level visualization**
 - **List of devices** with intercoms detected via mDNS
